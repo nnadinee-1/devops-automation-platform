@@ -25,10 +25,29 @@ jobs:
       - name: Run tests
         run: pytest app/tests/
 
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for scanning
+        run: docker build -t devops-platform:scan -f docker/Dockerfile .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: devops-platform:scan
+          format: table
+          exit-code: '1'
+          severity: 'CRITICAL'
+
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: test
+    needs: security-scan
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
